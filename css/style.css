@@ -1,0 +1,18 @@
+input {
+    position: absolute;
+}
+
+#slider {
+    top: 450px;
+    left: 601px;
+}
+
+#population-checkbox {
+    top: 500px;
+    left: 600px;
+}
+
+#bus-checkbox {
+    top: 540px;
+    left: 600px;
+}

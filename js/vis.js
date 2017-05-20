@@ -1,4 +1,4 @@
-var width = 1200;
+var width = 1000;
 var height = 600;
 var margin = 0;
 
@@ -20,12 +20,14 @@ var stopSizeScale = d3.scaleLinear().range([1,10]).domain([0,220]);
 
 var stopOpacity = d3.scaleLinear().range([0.7,0.7]).domain([0,220]);
 
+//var populationScale = d3.scaleLi
+
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
 
 queue()
-    .defer(d3.json,"data/json_tsoon3.json")
+    .defer(d3.json,"data/Populatsioon_grid.geojson")
     .defer(d3.csv, "data/bus_stops_first.csv")
    // .defer(d3.json,"uk.json")
     //.defer(d3.tsv, "world-country-names.tsv")
@@ -42,33 +44,19 @@ function draw(error,mapData,stops){
         .enter().insert("path", ".graticule")
         .attr("class", "area")
         .attr("d", function(d){return path(d)})
-        .style("fill", "grey");
+        .style("fill",function(d,i){debugger;
+            return d3.interpolateBlues(d.properties.rahvaarv_e/5000+0.1);
+            //return color(d.properties.rahvaarv_e);
+            //return d3.interpolateBlues(1-d.distance/700);
+        })
+        .on("click",function(d){
+            console.log(d);
+        });
 
     /*polygons.append("title")
         .text(function(d){
             return d.properties.rahvaarv_e;
         });*/
-
-    polygons.on("click",function(d){
-          /*  polygons.filter(function(x){
-                return x!=d;
-            }).remove()*/
-
-            var origin = getBoundingBoxCenter(this);
-
-            //var origin = [597.5492858886719,266.4285049438476];
-
-            polygons.each(function(d){
-                d.distance = distance(origin, getBoundingBoxCenter(this));
-            });
-
-            d3.selectAll(".area")
-                .style("fill",function(d,i){
-                    //return color(d.properties.rahvaarv_e);
-                    return d3.interpolateBlues(1-d.distance/700);
-                });
-         //   d3.select(this).style("fill","#cc4c02")
-        });
 
     svg.selectAll(".stop").data(stops).enter()
         .append("circle").attr("class","stop")
@@ -79,21 +67,6 @@ function draw(error,mapData,stops){
         .style("opacity",function (d) {
             return stopOpacity(d.values[0].value)
         });
-
-
-    function getBoundingBoxCenter (element) {
-        // get the DOM element from a D3 selection
-        // you could also use "this" inside .each()
-        var bbox = element.getBBox();
-        // return the center of the bounding box
-        return [bbox.x + bbox.width/2, bbox.y + bbox.height/2];
-    }
-
-    function distance(x,y){
-        var a = x[0] - y[0];
-        var b = x[1] - y[1];
-        return Math.sqrt( a*a + b*b );
-    }
 }
 
 function transformStopData(data){
