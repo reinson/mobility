@@ -10,13 +10,13 @@ var color = d3.scaleLinear()
 
 var colorRanges = {
     population: ["#d9d9d9","#c6dbef","#08306b"],
-    bus2: ["#d9d9d9","#fee391","#cc4c02","#a50f15"],
-    tele2: ["#d9d9d9","#fff5f0","#a50f15"]
+    bus2: ["#d9d9d9","#c6dbef","#08306b"],
+    tele2: ["#d9d9d9","#c6dbef","#08306b"]
 };
 
 var colorDomains = {
     population: [0,1, 5659],
-    bus2: [0,1,500,1300],
+    bus2: [0,1,500],
     tele2: [0,1,2129]
 };
 
