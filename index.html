@@ -6,6 +6,7 @@
 	<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
 	<title>Smart mobility</title>
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Lato:100,300" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
     <script src="https://d3js.org/d3-color.v1.min.js"></script>
     <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
@@ -14,9 +15,12 @@
 </head>
 
 <body>
-    <input id="slider" type="range" min="0" max="100" step="25" value="0">
-    <input id="bus-checkbox" type="checkbox" value="bus">
-    <input id="population-checkbox" type="checkbox" value="bus">
+    <input id="slider" type="range" min="0" max="20" step="1" value="0">
+    <select name="country-list" id="drop-down">
+      <option value="population">Population</option>
+      <option value="bus">Bus</option>
+      <option value="tele2">Tele2</option>
+    </select>
     <script src="js/vis.js"></script>
 </body>
 

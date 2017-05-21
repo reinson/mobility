@@ -1,18 +1,23 @@
-input {
+body {
+    font-family: 'Lato', sans-serif;
+}
+
+input,#drop-down {
     position: absolute;
+    width: 125px;
 }
 
 #slider {
+    top: 490px;
+    left: 601px;
+}
+
+#drop-down {
     top: 450px;
     left: 601px;
 }
 
-#population-checkbox {
-    top: 500px;
-    left: 600px;
-}
-
-#bus-checkbox {
-    top: 540px;
-    left: 600px;
+.title {
+    font-size: 45px;
+    fill: rgb(100,100,100);
 }

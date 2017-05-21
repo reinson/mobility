@@ -2,9 +2,15 @@ var width = 1000;
 var height = 600;
 var margin = 0;
 
-var color = d3.scaleLinear()
-    .domain([1, 10, 50, 200, 500, 1000, 2000, 4000])
-    .range(d3.schemeOrRd[9]);
+var objectIdBusData = "id";
+
+var popColor = d3.scaleLinear()
+    .domain([0,1, 4000])
+    .range(["#d9d9d9","#c6dbef","#08306b"]);
+
+var sliderThresholds = d3.scaleQuantize()
+    .domain([0,20])
+    .range([9,10,11,12]);
 
 var projection = d3.geoMercator()
     .scale(110000)
@@ -20,43 +26,61 @@ var stopSizeScale = d3.scaleLinear().range([1,10]).domain([0,220]);
 
 var stopOpacity = d3.scaleLinear().range([0.7,0.7]).domain([0,220]);
 
+d3.select("#slider")
+    .on("input", sliderChange)
+    .on("change", sliderChange);
+
+d3.select("#drop-down")
+    .on("change", dropDownChange);
+
 //var populationScale = d3.scaleLi
 
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
 
+svg.append("text").text("Smart mobility").attr("class","title")
+    .attr("x",75).attr("y",50);
+
+var state = {
+    type: "population",
+    time: "",
+    color: popColor
+};
+
 queue()
     .defer(d3.json,"data/Populatsioon_grid.geojson")
     .defer(d3.csv, "data/bus_stops_first.csv")
-   // .defer(d3.json,"uk.json")
+    .defer(d3.csv,"data/bus.csv")
     //.defer(d3.tsv, "world-country-names.tsv")
     .await(draw);
 
-function draw(error,mapData,stops){
-
+function draw(error,mapData,stops,busGridData){
     mapData = mapData.features;
 
+    busGridData = tranformBusGridData(busGridData);
+
     stops = transformStopData(stops);
+
+    var gridData = combineSources(mapData,busGridData);
 
     var polygons = svg.append("g").selectAll(".country")
         .data(mapData)
         .enter().insert("path", ".graticule")
         .attr("class", "area")
         .attr("d", function(d){return path(d)})
-        .style("fill",function(d,i){debugger;
+       /* .style("fill",function(d,i){
             return d3.interpolateBlues(d.properties.rahvaarv_e/5000+0.1);
             //return color(d.properties.rahvaarv_e);
             //return d3.interpolateBlues(1-d.distance/700);
-        })
+        })*/
         .on("click",function(d){
             console.log(d);
         });
-
     /*polygons.append("title")
         .text(function(d){
             return d.properties.rahvaarv_e;
-        });*/
+        });
 
     svg.selectAll(".stop").data(stops).enter()
         .append("circle").attr("class","stop")
@@ -66,7 +90,20 @@ function draw(error,mapData,stops){
         .style("fill","#cc4c02")
         .style("opacity",function (d) {
             return stopOpacity(d.values[0].value)
-        });
+        });*/
+
+    change();
+}
+
+function change(){
+    d3.selectAll(".area").style("fill",function(d){
+        if (state.type!="population"){
+            var value = d[state.type] ? d[state.type][state.time] : 0;
+            return state.color(value);
+        } else {
+            return state.color(d[state.type] || 0);
+        }
+    })
 }
 
 function transformStopData(data){
@@ -86,4 +123,33 @@ function transformStopData(data){
         .entries(data);
 
     return data;
+}
+
+function tranformBusGridData(data){
+    data.forEach(function(row){
+        Object.keys(row).forEach(function(key){
+            if (key!=objectIdBusData) row[key] = +row[key];
+        })
+    });
+    return d3.map(data,function(d){return d[objectIdBusData]})
+}
+
+function combineSources(mapData,busGridData){
+
+    mapData.forEach(function(row){
+        var id = row.properties.OBJECTID;
+        row.population = row.properties.rahvaarv_e;
+        row.bus = busGridData.get(id);
+    });
+}
+
+function sliderChange(){
+    var slider = d3.select("#slider");
+    state.time = sliderThresholds(+slider.property("value"));
+    change();
+}
+
+function dropDownChange(){
+    state.type = this.value;
+    sliderChange();
 }
