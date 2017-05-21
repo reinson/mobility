@@ -19,7 +19,9 @@ var path = d3.geoPath()
     .projection(projection);
 
 var maxValues = {};
-var timeKeys = {};
+var timeKeys = {
+    bus2: ["6", "6_30", "7", "7_30", "8", "8_30", "9", "9_30", "10", "10_30", "11", "11_30", "12", "12_30", "13", "13_30", "14", "14_30", "15", "15_30", "16", "16_30", "17", "17_30", "18", "18_30", "19", "19_30", "20", "20_30", "21", "21_30", "22", "22_30", "23_30"]
+};
 
 var slider = d3.select("#slider")
     .on("input", sliderChange)
@@ -60,17 +62,22 @@ queue()
     .defer(d3.json,"data/Populatsioon_grid.geojson")
     .defer(d3.csv, "data/bus_stops_first.csv")
     .defer(d3.csv,"data/bus.csv")
-    //.defer(d3.tsv, "world-country-names.tsv")
+    .defer(d3.csv, "data/tele2_2.csv")
+    .defer(d3.csv, "data/bus_stops.csv")
     .await(draw);
 
-function draw(error,mapData,stops,busGridData){
+function draw(error,mapData,stops,busGridData,tele2,newStops){
     mapData = mapData.features;
 
     busGridData = tranformBusGridData(busGridData);
 
     stops = transformStopData(stops);
+    var stopsNested = nestBus(newStops);
+    newStops = transformNewStops(stopsNested);
 
-    var gridData = combineSources(mapData,busGridData);
+    tele2 = transformTele2(tele2);
+
+    var gridData = combineSources(mapData,busGridData,tele2,newStops);
 
     var polygons = svg.append("g").selectAll(".country")
         .data(mapData)
@@ -87,6 +94,30 @@ function draw(error,mapData,stops,busGridData){
     change();
 }
 
+function nestBus(data){
+
+    var r = d3.nest()
+        .key(function(d){return d.CellID})
+        .key(function(d){return d.time_slot})
+        .rollup(function(leaves){
+            return d3.sum(leaves,function(d){return d.sum_all})
+        })
+        .entries(data);
+
+    r.forEach(function(row){
+        row.values.forEach(function(d){
+            row[busKeyConverter(d.key)] = d.value;
+        });
+        timeKeys.bus2.forEach(function(key){
+            if (!row[key]){
+                row[key] = 0
+            }
+        })
+    });
+
+    return r;
+}
+
 function change(dropdownChange){
     d3.selectAll(".area")
         .transition().duration(250)
@@ -95,8 +126,10 @@ function change(dropdownChange){
             return dropdownChange ? (lon-24.5)*1000 + Math.random()*100 : 0;
         })
         .style("fill",function(d){
+
             var value;
             if (state.type!="population"){
+                if (d.bus2) debugger;
                 value = d[state.type] ? d[state.type][state.time] : 0;
             } else {
                 value = d[state.type] || 0;
@@ -106,9 +139,7 @@ function change(dropdownChange){
         });
 
     d3.selectAll(".slider").classed("hidden", state.type=="population" );
-    d3.select("#slider-text").text(
-        state.time + ":00 - " + (state.time + 1) + ":00"
-    );
+    d3.select("#slider-text").text(formatSliderText(state.time));
 }
 
 function transformStopData(data){
@@ -130,6 +161,18 @@ function transformStopData(data){
     return data;
 }
 
+function transformNewStops(data){
+    var max = 300;
+    /*timeKeys.bus2 = Object.keys(data[0])
+        .filter(function(d){return d!="key" && d!="values"})
+        .sort(function(a,b){
+            return tele2keytonr(a)-tele2keytonr(b);
+        });
+    console.log(timeKeys.bus2)*/
+    maxValues.bus2 = max;
+    return d3.map(data,function(d){return d.key})
+}
+
 function tranformBusGridData(data){
     var max = 0;
     timeKeys.bus = Object.keys(data[0])
@@ -147,26 +190,76 @@ function tranformBusGridData(data){
     return d3.map(data,function(d){return d[objectIdBusData]})
 }
 
-function combineSources(mapData,busGridData){
+function combineSources(mapData,busGridData,tele2,newStops){
 
     mapData.forEach(function(row){
         var id = row.properties.OBJECTID;
         row.population = row.properties.rahvaarv_e;
         row.bus = busGridData.get(id);
+        row.tele2 = tele2.get(id);
+        row.bus2 = newStops.get(id);
     });
 
     maxValues.population = d3.max(mapData,function(d){return d.population});
 }
 
 function sliderChange(dropdownChange){
-    state.time = +slider.property("value");
+    if (state.type != "population"){
+        state.time = timeKeys[state.type][+slider.property("value")];
+    }
     change(dropdownChange);
 }
 
 function dropDownChange(){
     state.type = this.value;
     color.domain([0,1,maxValues[state.type]]);
-    slider.attr("min",d3.min(timeKeys[state.type],function(d){return +d}))
-        .attr("max",d3.max(timeKeys[state.type],function(d){return +d}));
+   // debugger;
+    if (state.type != "population"){
+        slider.attr("max",timeKeys[state.type].length-1);
+    }
     sliderChange(true);
+}
+
+function transformTele2(data){
+    var max = 0;
+    timeKeys.tele2 = Object.keys(data[0])
+        .filter(function(d){return d!="OBJECTID"})
+        .sort(function(a,b){
+            return tele2keytonr(a)-tele2keytonr(b);
+        });
+
+    data.forEach(function(row){
+        timeKeys.tele2.forEach(function(key){
+            row[key] = +row[key];
+            max = d3.max([max, +row[key]]);
+        })
+    });
+    maxValues.tele2 = max;
+    return d3.map(data,function(d){return d.OBJECTID})
+}
+
+function tele2keytonr(key){
+    return +key.replace("_",".")
+}
+
+function busKeyConverter(key){
+    var hour = +key.split(":")[0];
+    var mins = +key.split(":")[1];
+    var PM = key.split(" ")[1];
+
+    return hour+(PM?12:0) + (mins? "_30" : "")
+}
+
+function formatSliderText(time){
+    if (state.type == "bus"){
+        return +time + ":00 - " + (+time + 1) + ":00"
+    } else {
+        if(time.indexOf("_")==-1){
+            return time + ":00 - " + (+time + 1) + ":30"
+        } else {
+            var hour = time.split("_")[0];
+            return hour + ":30 - " + (+hour+1) + ":00"
+        }
+    }
+
 }

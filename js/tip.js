@@ -32,7 +32,6 @@ d3.tip = function() {
   // Returns a tip
   tip.show = function() {
     var args = Array.prototype.slice.call(arguments)
-      console.log(args)
     if(args[args.length - 1] instanceof SVGElement) target = args.pop()
 
     var content = html.apply(this, args),
@@ -282,7 +281,6 @@ d3.tip = function() {
   // Returns an Object {n, s, e, w, nw, sw, ne, se}
   function getScreenBBox() {
     var targetel   = target || d3.event.target;
-    console.log(targetel);
 
     while ('undefined' === typeof targetel.getScreenCTM && 'undefined' === targetel.parentNode) {
         targetel = targetel.parentNode;
