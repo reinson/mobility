@@ -4,7 +4,7 @@ var margin = 0;
 
 var objectIdBusData = "id";
 
-var popColor = d3.scaleLinear()
+var color = d3.scaleLinear()
     .domain([0,1, 4000])
     .range(["#d9d9d9","#c6dbef","#08306b"]);
 
@@ -21,6 +21,8 @@ var projection = d3.geoMercator()
 
 var path = d3.geoPath()
     .projection(projection);
+
+var maxValues = {};
 
 var stopSizeScale = d3.scaleLinear().range([1,10]).domain([0,220]);
 
@@ -42,10 +44,16 @@ var svg = d3.select("body").append("svg")
 svg.append("text").text("Smart mobility").attr("class","title")
     .attr("x",75).attr("y",50);
 
+svg.append("text").text("9:00 - 10:00").attr("class","slider hidden")
+    .style("font-size","20px")
+    .attr("id","slider-text")
+    .attr("x",600).attr("y",530);
+
+
 var state = {
     type: "population",
     time: "",
-    color: popColor
+    color: color
 };
 
 queue()
@@ -69,6 +77,7 @@ function draw(error,mapData,stops,busGridData){
         .enter().insert("path", ".graticule")
         .attr("class", "area")
         .attr("d", function(d){return path(d)})
+        .style("fill","#d9d9d9")
        /* .style("fill",function(d,i){
             return d3.interpolateBlues(d.properties.rahvaarv_e/5000+0.1);
             //return color(d.properties.rahvaarv_e);
@@ -95,15 +104,26 @@ function draw(error,mapData,stops,busGridData){
     change();
 }
 
-function change(){
-    d3.selectAll(".area").style("fill",function(d){
-        if (state.type!="population"){
-            var value = d[state.type] ? d[state.type][state.time] : 0;
-            return state.color(value);
-        } else {
-            return state.color(d[state.type] || 0);
-        }
-    })
+function change(dropdownChange){
+    d3.selectAll(".area")
+        .transition().duration(250)
+        .delay(function(d){
+            var lon = d.geometry.coordinates[0][0][0][0];
+            return dropdownChange ? (lon-24.5)*1000 : 0;
+        })
+        .style("fill",function(d){
+            if (state.type!="population"){
+                var value = d[state.type] ? d[state.type][state.time] : 0;
+                return state.color(value);
+            } else {
+                return state.color(d[state.type] || 0);
+            }
+        });
+    
+    d3.selectAll(".slider").classed("hidden", state.type=="population" );
+    d3.select("#slider-text").text(
+        state.time + ":00 - " + (state.time + 1) + ":00"
+    );
 }
 
 function transformStopData(data){
@@ -126,11 +146,16 @@ function transformStopData(data){
 }
 
 function tranformBusGridData(data){
+    var max = 0;
     data.forEach(function(row){
         Object.keys(row).forEach(function(key){
-            if (key!=objectIdBusData) row[key] = +row[key];
+            if (key!=objectIdBusData){
+                row[key] = +row[key];
+                max = d3.max([max, +row[key]]);
+            }
         })
     });
+    maxValues.bus = max;
     return d3.map(data,function(d){return d[objectIdBusData]})
 }
 
@@ -141,15 +166,18 @@ function combineSources(mapData,busGridData){
         row.population = row.properties.rahvaarv_e;
         row.bus = busGridData.get(id);
     });
+
+    maxValues.population = d3.max(mapData,function(d){return d.population});
 }
 
-function sliderChange(){
+function sliderChange(dropdownChange){
     var slider = d3.select("#slider");
     state.time = sliderThresholds(+slider.property("value"));
-    change();
+    change(dropdownChange);
 }
 
 function dropDownChange(){
     state.type = this.value;
-    sliderChange();
+    color.domain([0,1,maxValues[state.type]]);
+    sliderChange(true);
 }

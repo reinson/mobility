@@ -2,6 +2,10 @@ body {
     font-family: 'Lato', sans-serif;
 }
 
+.hidden {
+    display: none;
+}
+
 input,#drop-down {
     position: absolute;
     width: 125px;
