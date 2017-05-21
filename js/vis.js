@@ -49,6 +49,13 @@ svg.append("text").text("9:00 - 10:00").attr("class","slider hidden")
     .attr("id","slider-text")
     .attr("x",600).attr("y",530);
 
+var toolTip = d3.tip()
+      .attr("class", "d3-tip")
+      .offset([-8, 0])
+      .html(function(d) { return Math.round(d.tooltipValue); });
+
+svg.call(toolTip);
+
 
 var state = {
     type: "population",
@@ -83,6 +90,8 @@ function draw(error,mapData,stops,busGridData){
             //return color(d.properties.rahvaarv_e);
             //return d3.interpolateBlues(1-d.distance/700);
         })*/
+        .on("mouseover",toolTip.show)
+        .on("mouseout",toolTip.hide)
         .on("click",function(d){
             console.log(d);
         });
@@ -109,17 +118,19 @@ function change(dropdownChange){
         .transition().duration(250)
         .delay(function(d){
             var lon = d.geometry.coordinates[0][0][0][0];
-            return dropdownChange ? (lon-24.5)*1000 : 0;
+            return dropdownChange ? (lon-24.5)*1000 + Math.random()*100 : 0;
         })
         .style("fill",function(d){
+            var value;
             if (state.type!="population"){
-                var value = d[state.type] ? d[state.type][state.time] : 0;
-                return state.color(value);
+                value = d[state.type] ? d[state.type][state.time] : 0;
             } else {
-                return state.color(d[state.type] || 0);
+                value = d[state.type] || 0;
             }
+            d.tooltipValue = value;
+            return state.color(value);
         });
-    
+
     d3.selectAll(".slider").classed("hidden", state.type=="population" );
     d3.select("#slider-text").text(
         state.time + ":00 - " + (state.time + 1) + ":00"
