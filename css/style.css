@@ -13,12 +13,14 @@ input,#drop-down {
 
 #slider {
     top: 490px;
-    left: 601px;
+    left: 800px;
+    width: 200px;
 }
 
 #drop-down {
     top: 450px;
-    left: 601px;
+    left: 800px;
+    width: 200px;
 }
 
 .title {

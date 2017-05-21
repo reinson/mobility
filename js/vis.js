@@ -32,12 +32,9 @@ d3.select("#drop-down")
 
 //var populationScale = d3.scaleLi
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select("#main-container").append("svg")
     .attr("width", width)
     .attr("height", height);
-
-svg.append("text").text("Smart mobility").attr("class","title")
-    .attr("x",75).attr("y",50);
 
 svg.append("text").text("9:00 - 10:00").attr("class","slider hidden")
     .style("font-size","20px")
