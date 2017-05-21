@@ -5,12 +5,8 @@ var margin = 0;
 var objectIdBusData = "id";
 
 var color = d3.scaleLinear()
-    .domain([0,1, 4000])
+    .domain([0,1, 5000])
     .range(["#d9d9d9","#c6dbef","#08306b"]);
-
-var sliderThresholds = d3.scaleQuantize()
-    .domain([0,20])
-    .range([9,10,11,12]);
 
 var projection = d3.geoMercator()
     .scale(110000)
@@ -23,12 +19,9 @@ var path = d3.geoPath()
     .projection(projection);
 
 var maxValues = {};
+var timeKeys = {};
 
-var stopSizeScale = d3.scaleLinear().range([1,10]).domain([0,220]);
-
-var stopOpacity = d3.scaleLinear().range([0.7,0.7]).domain([0,220]);
-
-d3.select("#slider")
+var slider = d3.select("#slider")
     .on("input", sliderChange)
     .on("change", sliderChange);
 
@@ -85,30 +78,11 @@ function draw(error,mapData,stops,busGridData){
         .attr("class", "area")
         .attr("d", function(d){return path(d)})
         .style("fill","#d9d9d9")
-       /* .style("fill",function(d,i){
-            return d3.interpolateBlues(d.properties.rahvaarv_e/5000+0.1);
-            //return color(d.properties.rahvaarv_e);
-            //return d3.interpolateBlues(1-d.distance/700);
-        })*/
         .on("mouseover",toolTip.show)
         .on("mouseout",toolTip.hide)
         .on("click",function(d){
             console.log(d);
         });
-    /*polygons.append("title")
-        .text(function(d){
-            return d.properties.rahvaarv_e;
-        });
-
-    svg.selectAll(".stop").data(stops).enter()
-        .append("circle").attr("class","stop")
-        .attr("cx",function(d){ return d.values[0].x})
-        .attr("cy",function(d){return d.values[0].y})
-        .attr("r",function(d){return stopSizeScale(d.values[0].value)})
-        .style("fill","#cc4c02")
-        .style("opacity",function (d) {
-            return stopOpacity(d.values[0].value)
-        });*/
 
     change();
 }
@@ -158,8 +132,11 @@ function transformStopData(data){
 
 function tranformBusGridData(data){
     var max = 0;
+    timeKeys.bus = Object.keys(data[0])
+        .filter(function(d){return d!="id"})
+        .sort(function(a,b){return a-b});
     data.forEach(function(row){
-        Object.keys(row).forEach(function(key){
+        timeKeys.bus.forEach(function(key){
             if (key!=objectIdBusData){
                 row[key] = +row[key];
                 max = d3.max([max, +row[key]]);
@@ -182,13 +159,14 @@ function combineSources(mapData,busGridData){
 }
 
 function sliderChange(dropdownChange){
-    var slider = d3.select("#slider");
-    state.time = sliderThresholds(+slider.property("value"));
+    state.time = +slider.property("value");
     change(dropdownChange);
 }
 
 function dropDownChange(){
     state.type = this.value;
     color.domain([0,1,maxValues[state.type]]);
+    slider.attr("min",d3.min(timeKeys[state.type],function(d){return +d}))
+        .attr("max",d3.max(timeKeys[state.type],function(d){return +d}));
     sliderChange(true);
 }
